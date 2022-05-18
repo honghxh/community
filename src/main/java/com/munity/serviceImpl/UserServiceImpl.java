@@ -2,23 +2,25 @@ package com.munity.serviceImpl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.munity.common.R;
+import com.munity.mapper.UserMapper;
 import com.munity.pojo.entity.LoginTicket;
 import com.munity.pojo.entity.User;
-import com.munity.mapper.LoginTicketMapper;
-import com.munity.mapper.UserMapper;
 import com.munity.pojo.model.alterPass;
 import com.munity.service.UserService;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.munity.util.CommunityUtil;
+import com.munity.util.RedisKeyUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -34,7 +36,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Autowired
     private UserMapper userMapper;
     @Autowired
-    private LoginTicketMapper loginTicketMapper;
+    private RedisTemplate redisTemplate;
 
     @Override
     public R<String> register(User user) {
@@ -124,8 +126,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         loginTicket.setTicket(CommunityUtil.generateUUID());
         loginTicket.setStatus(0);
         loginTicket.setExpired(new Date(System.currentTimeMillis() + 24 * 60 * 6000));
-        loginTicketMapper.insert(loginTicket);
-
+        String redisKey = RedisKeyUtil.getTicketKey(loginTicket.getTicket());
+        redisTemplate.opsForValue().set(redisKey, loginTicket);
+        System.out.println(loginTicket.toString());
         return R.success(user).add("ticket", loginTicket.getTicket());
 
     }
@@ -139,21 +142,32 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
  * 当请求参数传过来当时候要保证它是干净的，当参数放进sql语句中，不会出现问题的。
  * 在mybatis # {} 的预编译下参数将会变为字符串所以参数不用带引号，只需保证它正确干净就行，如果需要对于参数进行处理，那就再说。
  * */
-        loginTicketMapper.updateStatus(1, ticket);
-
+//        loginTicketMapper.updateStatus(1, ticket);
+        String redisKey = RedisKeyUtil.getTicketKey(ticket);
+        LoginTicket loginTicket = (LoginTicket) redisTemplate.opsForValue().get(redisKey);
+        loginTicket.setStatus(1);
+        redisTemplate.opsForValue().set(redisKey, loginTicket);
         return R.success("退出成功");
     }
 
     @Override
     public LoginTicket findLoginTicket(String ticket) {
-        QueryWrapper<LoginTicket> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("ticket", ticket);
-        return loginTicketMapper.selectOne(queryWrapper);
+//        QueryWrapper<LoginTicket> queryWrapper = new QueryWrapper<>();
+//        queryWrapper.eq("ticket", ticket);
+//        return loginTicketMapper.selectOne(queryWrapper);
+        //不再先去数据库中查询而是先去查询redis缓存中的信息，如果有信息直接用，没有再去数据库查询，再放到redis中。
+        String redisKey = RedisKeyUtil.getTicketKey(ticket);
+        return (LoginTicket) redisTemplate.opsForValue().get(redisKey);
     }
 
     @Override
     public User findUserById(int id) {
-        return userMapper.selectById(id);
+        User user = getCache(id);
+        if (user == null) {
+            user = initCache(id);
+        }
+        return user;
+//        return userMapper.selectById(id);
     }
 
     @Override
@@ -202,8 +216,31 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public int uploadHeader(String username, String headerUrl) {
         UpdateWrapper<User> updateWrapper = new UpdateWrapper<>();
         updateWrapper.eq("username", username).set("header_url", headerUrl);
-        return userMapper.update(null, updateWrapper);
+        int rows = userMapper.update(null, updateWrapper);
+        int userId = userMapper.selectIdByUsername(username);
+        clearCache(userId);
+        return rows;
 
+    }
+
+    // 1.优先从缓存中取值
+    private User getCache(int userId) {
+        String redisKey = RedisKeyUtil.getUserKey(userId);
+        return (User) redisTemplate.opsForValue().get(redisKey);
+    }
+
+    // 2.取不到时初始化缓存数据
+    private User initCache(int userId) {
+        User user = userMapper.selectById(userId);
+        String redisKey = RedisKeyUtil.getUserKey(userId);
+        redisTemplate.opsForValue().set(redisKey, user, 3600, TimeUnit.SECONDS);
+        return user;
+    }
+
+    // 3.数据变更时清除缓存数据
+    private void clearCache(int userId) {
+        String redisKey = RedisKeyUtil.getUserKey(userId);
+        redisTemplate.delete(redisKey);
     }
 
     @Override

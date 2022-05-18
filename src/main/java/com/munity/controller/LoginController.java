@@ -3,9 +3,7 @@ package com.munity.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.munity.common.R;
 import com.munity.mapper.UserMapper;
-import com.munity.pojo.entity.Comment;
 import com.munity.pojo.entity.LoginTicket;
-import com.munity.pojo.entity.Message;
 import com.munity.pojo.entity.User;
 import com.munity.service.UserService;
 import com.munity.util.CookieUtil;
@@ -13,13 +11,10 @@ import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.ServletResponse;
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Date;
-import java.util.Map;
 
 /**
  * @author forrest
@@ -37,8 +32,6 @@ public class LoginController {
     public R<User> person(HttpServletRequest request) {
         String sessionId = CookieUtil.getValue(request, "JSESSIONID");
         String ticket = (String) request.getSession().getAttribute("ticket");
-        System.out.println(sessionId);
-        System.out.println(ticket);
         if (ticket != null) {
             // 查询凭证
             LoginTicket loginTicket = userService.findLoginTicket(ticket);
@@ -91,10 +84,9 @@ public class LoginController {
     @ApiOperation(value = "退出接口")
     @RequestMapping(value = "/logout", method = RequestMethod.GET)
     public R<String> logout(HttpServletRequest request, @CookieValue("JSESSIONID") String JSESSIONID) {
+        String ticket = (String) request.getSession().getAttribute("ticket");
         request.getSession().removeAttribute("ticket");
         request.getSession().removeAttribute("user");
-        return userService.logout(JSESSIONID);
-
-
+           return userService.logout(ticket);
     }
 }

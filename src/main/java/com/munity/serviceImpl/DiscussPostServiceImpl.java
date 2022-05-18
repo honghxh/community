@@ -1,5 +1,6 @@
 package com.munity.serviceImpl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.munity.mapper.UserMapper;
 import com.munity.pojo.entity.DiscussPost;
 import com.munity.mapper.DiscussPostMapper;
@@ -12,6 +13,8 @@ import com.munity.service.LikeService;
 import com.munity.util.SensitiveFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 import static com.munity.util.CommunityConstant.ENTITY_TYPE_POST;
 
@@ -62,4 +65,13 @@ public class DiscussPostServiceImpl extends ServiceImpl<DiscussPostMapper, Discu
        p.setFollowCount(followService.findFollowerCount(ENTITY_TYPE_POST,discussPostId));
        return p;
     }
+
+    @Override
+    public List<DiscussPost> getUserPost(int userId) {
+        QueryWrapper<DiscussPost> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_id", userId);
+        return discussPostMapper.selectList(queryWrapper);
+    }
+
+
 }

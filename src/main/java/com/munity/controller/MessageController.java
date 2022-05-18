@@ -4,8 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.munity.common.R;
 import com.munity.mapper.MessageMapper;
 import com.munity.mapper.UserMapper;
-import com.munity.pojo.entity.Comment;
-import com.munity.pojo.entity.DiscussPost;
 import com.munity.pojo.entity.Message;
 import com.munity.pojo.entity.User;
 import com.munity.pojo.model.MessageVo;
@@ -15,7 +13,6 @@ import com.munity.service.UserService;
 import com.munity.util.CommunityConstant;
 import com.munity.util.SensitiveFilter;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -52,12 +49,12 @@ public class MessageController implements CommunityConstant {
             return R.error("您未登陆");
         }
         R<List<MessageVo>> r = new R<>();
-        int userId = userService.findUserIdByUserName(user.getUsername());
-        List<Message> messageList = messageService.findConversations(userId, pageNum, pageSize);
+        //修改
+        List<Message> messageList = messageService.findConversations(user.getId(), pageNum, pageSize);
         List<MessageVo> messageVoList = messageService.getMessageList(messageList);
-        int total = messageService.findConversationCount(userId);
-        int letterUnreadCount = messageService.findLetterUnreadCount(userId, null);
-        int noticeUnreadCount = messageService.findNoticeUnreadCount(userId, null);
+        int total = messageService.findConversationCount(user.getId());
+        int letterUnreadCount = messageService.findLetterUnreadCount(user.getId(), null);
+        int noticeUnreadCount = messageService.findNoticeUnreadCount(user.getId(), null);
         Map<String, Object> map = new HashMap<>();
         map.put("total", total);
         map.put("letterUnreadCount", letterUnreadCount);

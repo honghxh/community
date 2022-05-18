@@ -54,7 +54,8 @@ public class CommentController {
             return R.error("未登陆，无法评论");
         }
         Comment comment = new Comment();
-        comment.setUserId(userService.findUserIdByUserName(user.getUsername()));
+        //修改
+        comment.setUserId(user.getId());
         comment.setStatus(0);
         comment.setEntityType(1);
         comment.setTargetId(0);

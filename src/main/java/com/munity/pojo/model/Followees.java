@@ -54,6 +54,5 @@ public class Followees {
     @TableField(value = "create_time", fill = FieldFill.INSERT)
     private Date createTime;
 
-
     private Date followTime;
 }

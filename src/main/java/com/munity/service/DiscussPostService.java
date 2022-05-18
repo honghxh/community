@@ -4,6 +4,8 @@ import com.munity.pojo.entity.DiscussPost;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.munity.pojo.model.Post;
 
+import java.util.List;
+
 /**
  * <p>
  *  服务类
@@ -15,4 +17,6 @@ import com.munity.pojo.model.Post;
 public interface DiscussPostService extends IService<DiscussPost> {
   public  int  addDiscussPost(DiscussPost discussPost);
   public Post findDiscussPostById(int discussPostId);
+  public List<DiscussPost> getUserPost(int userId);
+
 }

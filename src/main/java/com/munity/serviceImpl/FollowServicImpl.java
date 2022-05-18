@@ -1,7 +1,10 @@
 package com.munity.serviceImpl;
 
+import com.munity.pojo.entity.DiscussPost;
 import com.munity.pojo.entity.User;
 import com.munity.pojo.model.Followees;
+import com.munity.pojo.model.Post;
+import com.munity.service.DiscussPostService;
 import com.munity.service.FollowService;
 import com.munity.service.UserService;
 import com.munity.util.CommunityConstant;
@@ -26,6 +29,8 @@ public class FollowServicImpl implements CommunityConstant, FollowService {
 
     @Autowired
     private UserService userService;
+    @Autowired
+    DiscussPostService discussPostService;
 
     @Override
     public void follow(int userId, int entityType, int entityId) {
@@ -102,6 +107,27 @@ public class FollowServicImpl implements CommunityConstant, FollowService {
             Double score = redisTemplate.opsForZSet().score(followeeKey, targetId);
             followees.setFollowTime(new Date(score.longValue()));
             list.add(followees);
+        }
+
+        return list;
+    }
+
+    @Override
+    public List<Post> findFolloweesPost(int userId, int offset, int limit) {
+        String followeeKey = RedisKeyUtil.getFolloweeKey(userId, ENTITY_TYPE_POST);
+        Set<Integer> targetIds = redisTemplate.opsForZSet().reverseRange(followeeKey, offset, offset + limit - 1);
+
+        if (targetIds == null) {
+            return null;
+        }
+
+        List<Post> list = new ArrayList<>();
+        for (Integer targetId : targetIds) {
+            //这里存在循环依赖，要给它解决掉。 followservice 和 discusspostservice 存在循环依赖
+            Post post = discussPostService.findDiscussPostById(targetId);
+            Double score = redisTemplate.opsForZSet().score(followeeKey, targetId);
+            post.setFollowTime(new Date(score.longValue()));
+            list.add(post);
         }
 
         return list;

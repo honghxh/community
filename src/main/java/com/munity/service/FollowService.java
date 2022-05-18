@@ -1,6 +1,7 @@
 package com.munity.service;
 
 import com.munity.pojo.model.Followees;
+import com.munity.pojo.model.Post;
 
 import java.util.List;
 
@@ -15,5 +16,6 @@ public interface FollowService {
     public boolean hasFollowed(int userId, int entityType, int entityId);
     public List<Followees> findFollowees(int userId, int offset, int limit);
     public List<Followees> findFollowers(int userId, int offset, int limit);
+    public List<Post> findFolloweesPost(int userId, int offset, int limit);
 
 }

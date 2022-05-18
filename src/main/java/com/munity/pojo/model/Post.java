@@ -78,9 +78,13 @@ public class Post implements Serializable {
 
     private long likeCount;
 
-    private boolean likeStatus;
+    private int likeStatus;
 
     private long followCount;
+
+    private boolean followStatus = false;
+
+    private Date followTime;
 
     public Post(DiscussPost post) {
         this.id = post.getId();

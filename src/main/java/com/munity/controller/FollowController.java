@@ -2,10 +2,7 @@ package com.munity.controller;
 
 import com.munity.common.R;
 import com.munity.pojo.entity.User;
-import com.munity.pojo.model.AddLike;
-import com.munity.pojo.model.Followees;
-import com.munity.pojo.model.Like;
-import com.munity.pojo.model.MessageVo;
+import com.munity.pojo.model.*;
 import com.munity.service.FollowService;
 import com.munity.service.UserService;
 import com.munity.util.CommunityConstant;
@@ -36,8 +33,14 @@ public class FollowController implements CommunityConstant {
         if(user == null) {
             return R.error("未登陆");
         }
+        if(followService.hasFollowed(user.getId(),addLike.getEntityType(),addLike.getEntityId())){
+            followService.unfollow(user.getId(), addLike.getEntityType(), addLike.getEntityId());
+            R.success("取消关注");
+        }
+        else{
         followService.follow(user.getId(), addLike.getEntityType(), addLike.getEntityId());
-        return R.success("success");
+        }
+        return R.success("关注成功");
     }
 
     @RequestMapping(path = "/unfollow", method = RequestMethod.POST)
@@ -76,6 +79,22 @@ public class FollowController implements CommunityConstant {
         List<Followees> followeesList = followService.findFollowers(userId,pageNum,pageSize);
         R<List<Followees>> r = new R<>();
         r.setData(followeesList);
+        r.setCode(1);
+        r.setMsg("获取关注列表成功");
+        return r;
+    }
+
+
+    @RequestMapping(path = "/followerPost/{id}", method = RequestMethod.GET)
+    public R<List<Post>> getFollowerPost(@PathVariable("id") int id, HttpServletRequest request, @RequestParam(value = "pageNum", defaultValue = "0") int pageNum, @RequestParam(value = "pageSize", defaultValue = "5") int pageSize) {
+        User user = (User) request.getSession().getAttribute("user");
+        if (user == null) {
+            return R.error("未登陆");
+        }
+        long total = followService.findFolloweeCount(id, ENTITY_TYPE_POST);
+        List<Post> postList = followService.findFolloweesPost(id,pageNum,pageSize);
+        R<List<Post>> r = new R<>();
+        r.setData(postList);
         r.setCode(1);
         r.setMsg("获取关注列表成功");
         return r;

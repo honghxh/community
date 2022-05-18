@@ -11,6 +11,7 @@ import com.munity.pojo.model.CommentDetail;
 import com.munity.pojo.model.Post;
 import com.munity.service.CommentService;
 import com.munity.service.DiscussPostService;
+import com.munity.service.FollowService;
 import com.munity.service.LikeService;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,17 +44,16 @@ public class DiscussPostController {
     CommentService commentService;
     @Autowired
     LikeService likeService;
+    @Autowired
+    FollowService followService;
 
     @RequestMapping(value = "add", method = RequestMethod.POST)
     public R<String> addPost(@RequestBody DiscussPost discussPost, HttpServletRequest request) {
         User u = (User) request.getSession().getAttribute("user");
         if (u == null) {
-            R.error("你未登陆");
+           return R.error("你未登陆");
         }
         DiscussPost post = new DiscussPost();
-        if (u.getUsername() == null) {
-            return R.error("你未登陆");
-        }
         int id = userMapper.selectIdByUsername(u.getUsername());
         post.setUserId(id);
         post.setTitle(discussPost.getTitle());
@@ -76,14 +76,18 @@ public class DiscussPostController {
 
     //返回帖子详情
     @GetMapping(value = "/detail")
-    public R<Post> postDetail(@RequestParam("discussPostId") int discussPostId) {
+    public R<Post> postDetail(@RequestParam("discussPostId") int discussPostId,HttpServletRequest request) {
         if (discussPostId == 0) {
             return R.error("该帖子不存在");
         }
+        User user = (User)request.getSession().getAttribute("user");
+        if(user!=null){
         Post post = discussPostService.findDiscussPostById(discussPostId);
-        if (post == null) {
-            return R.error("该帖子不存在");
+        post.setFollowStatus(followService.hasFollowed(user.getId(),1,discussPostId));
+//        post.setLikeStatus(likeService.findEntityLikeStatus(user.getId(),1,discussPostId));
+        return  R.success(post);
         }
+        Post post = discussPostService.findDiscussPostById(discussPostId);
         return R.success(post);
     }
 
@@ -115,7 +119,6 @@ public class DiscussPostController {
                 queryWrapper1.eq("target_id",comment.getId());
                 Page<Comment> page1 = commentService.page(s1, queryWrapper1);
                 long replyTotal = page1.getTotal();
-                System.out.println(replyTotal);
                 c.setTotal(replyTotal);
                 User user = userMapper.selectById(comment.getUserId());
                 c.setHeaderUrl(user.getHeaderUrl());

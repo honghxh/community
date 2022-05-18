@@ -100,4 +100,10 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         return replyList;
     }
 
+    public List<Comment> getUserComment(int userId) {
+        QueryWrapper<Comment> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_id", userId);
+
+        return commentMapper.selectList(queryWrapper);
+    }
 }

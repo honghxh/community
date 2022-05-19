@@ -1,18 +1,21 @@
 package com.munity.controller;
 
 import com.munity.common.R;
+import com.munity.event.EventProducer;
+import com.munity.pojo.entity.Event;
 import com.munity.pojo.entity.User;
-import com.munity.pojo.model.*;
+import com.munity.pojo.model.AddLike;
+import com.munity.pojo.model.Followees;
+import com.munity.pojo.model.Post;
+import com.munity.service.DiscussPostService;
 import com.munity.service.FollowService;
 import com.munity.service.UserService;
 import com.munity.util.CommunityConstant;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author forrest
@@ -25,6 +28,12 @@ public class FollowController implements CommunityConstant {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private EventProducer eventProducer;
+
+    @Autowired
+    private DiscussPostService discussPostService;
 
 
     @RequestMapping(path = "/follow", method = RequestMethod.POST)
@@ -39,6 +48,23 @@ public class FollowController implements CommunityConstant {
         }
         else{
         followService.follow(user.getId(), addLike.getEntityType(), addLike.getEntityId());
+        if(addLike.getEntityType()==1){
+            Event event = new Event()
+                    .setTopic(TOPIC_FOLLOW)
+                    .setUserId(user.getId())
+                    .setEntityType(addLike.getEntityType())
+                    .setEntityId(addLike.getEntityId())
+                    .setEntityUserId(discussPostService.selectById(addLike.getEntityId()).getUserId());
+            eventProducer.fireEvent(event);
+        }
+        else{
+            Event event = new Event()
+                    .setTopic(TOPIC_FOLLOW)
+                    .setUserId(user.getId())
+                    .setEntityType(addLike.getEntityType())
+                    .setEntityId(addLike.getEntityId())
+                    .setEntityUserId(addLike.getEntityId());
+            eventProducer.fireEvent(event);}
         }
         return R.success("关注成功");
     }

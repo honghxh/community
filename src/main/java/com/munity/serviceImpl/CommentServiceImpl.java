@@ -3,32 +3,26 @@ package com.munity.serviceImpl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.munity.common.R;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.munity.mapper.CommentMapper;
 import com.munity.mapper.DiscussPostMapper;
 import com.munity.mapper.UserMapper;
 import com.munity.pojo.entity.Comment;
-import com.munity.mapper.CommentMapper;
 import com.munity.pojo.entity.DiscussPost;
 import com.munity.pojo.entity.User;
 import com.munity.pojo.model.CommentDetail;
-import com.munity.pojo.model.Post;
 import com.munity.service.CommentService;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.munity.util.SensitiveFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static com.munity.util.CommunityConstant.*;
 
 /**
  * <p>
@@ -105,5 +99,10 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         queryWrapper.eq("user_id", userId);
 
         return commentMapper.selectList(queryWrapper);
+    }
+
+    @Override
+    public Comment selectById(int userId) {
+        return commentMapper.selectById(userId);
     }
 }

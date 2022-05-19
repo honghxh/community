@@ -3,14 +3,18 @@ package com.munity.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.munity.common.R;
+import com.munity.event.EventProducer;
 import com.munity.mapper.CommentMapper;
 import com.munity.mapper.UserMapper;
 import com.munity.pojo.entity.Comment;
+import com.munity.pojo.entity.DiscussPost;
+import com.munity.pojo.entity.Event;
 import com.munity.pojo.entity.User;
 import com.munity.pojo.model.CommentDetail;
 import com.munity.pojo.model.Reply;
 import com.munity.pojo.model.addComment;
 import com.munity.service.CommentService;
+import com.munity.service.DiscussPostService;
 import com.munity.service.LikeService;
 import com.munity.service.UserService;
 import io.swagger.annotations.Api;
@@ -20,8 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 
-import static com.munity.util.CommunityConstant.ENTITY_TYPE_COMMENT;
-import static com.munity.util.CommunityConstant.ENTITY_TYPE_POST;
+import static com.munity.util.CommunityConstant.*;
 
 /**
  * <p>
@@ -38,14 +41,25 @@ public class CommentController {
 
     @Autowired
     CommentService commentService;
+
     @Autowired
     UserService userService;
+
     @Autowired
     UserMapper userMapper;
+
     @Autowired
     CommentMapper commentMapper;
+
     @Autowired
     LikeService likeService;
+
+    @Autowired
+    DiscussPostService discussPostService;
+
+    @Autowired
+    private EventProducer eventProducer;
+
     @RequestMapping(path = "/add", method = RequestMethod.POST)
     public R<List<Map<String, Object>>> addComment(@RequestBody addComment addComment, HttpServletRequest request) {
         R<List<Map<String, Object>>> r = new R<>();
@@ -62,6 +76,22 @@ public class CommentController {
         comment.setContent(addComment.getContent());
         comment.setEntityId(addComment.getDiscussPostId());
         comment.setCreateTime(new Date());
+
+        Event event = new Event()
+                .setTopic(TOPIC_COMMENT)
+                .setUserId(user .getId())
+                .setEntityType(comment.getEntityType())
+                .setEntityId(comment.getEntityId())
+                .setData("postId", addComment.getDiscussPostId());
+        if (comment.getEntityType() == ENTITY_TYPE_POST) {
+            DiscussPost target = discussPostService.selectById(comment.getEntityId());
+            event.setEntityUserId(target.getUserId());
+        } else if (comment.getEntityType() == ENTITY_TYPE_COMMENT) {
+            Comment target = commentService.selectById(comment.getEntityId());
+            event.setEntityUserId(target.getUserId());
+        }
+        eventProducer.fireEvent(event);
+
         if (commentService.addComment(comment) > 0) {
             List<Map<String, Object>> discussPostComment = new ArrayList<>();
             Page<Comment> s = new Page<>(0, 5);
@@ -103,7 +133,6 @@ public class CommentController {
             return R.error("回复失败");
         }
         Comment comment = new Comment();
-//        reply.getid();
         comment.setEntityId(reply.getEntity_id());
         if (reply.getEntity_type() == 3) {
             comment.setTargetId(commentMapper.selectById(reply.getId()).getTargetId());
@@ -148,7 +177,7 @@ public class CommentController {
                 if (replyUser != null) {
                     c.setReplyName(replyUser.getUsername());
                 }
-                c.setCommentLikeCount(likeService.findEntityLikeCount(ENTITY_TYPE_COMMENT,c.getId()));
+                c.setCommentLikeCount(likeService.findEntityLikeCount(ENTITY_TYPE_COMMENT, c.getId()));
                 c.setUsername(user.getUsername());
                 map.put("comment", c);
                 replyList.add(map);

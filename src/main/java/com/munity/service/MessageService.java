@@ -18,6 +18,8 @@ public interface MessageService extends IService<Message> {
 
     public List<MessageVo> getMessageList(List<Message> message);
 
+    public List<MessageVo> getNoticeList(List<Message> message);
+
     public List<Message> findConversations(int userId, int offset, int limit);
 
     public int findConversationCount(int userId);

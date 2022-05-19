@@ -1,5 +1,6 @@
 package com.munity.controller;
 
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.munity.common.R;
 import com.munity.mapper.MessageMapper;
@@ -14,6 +15,7 @@ import com.munity.util.CommunityConstant;
 import com.munity.util.SensitiveFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.HtmlUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
@@ -197,5 +199,107 @@ public class MessageController implements CommunityConstant {
         } else {
             return R.error("删除失败");
         }
+    }
+
+    @RequestMapping(value = "/notice/list", method = RequestMethod.GET)
+    public R<List<MessageVo>> getNotice( HttpServletRequest request) {
+        User user = (User) request.getSession().getAttribute("user");
+        if (user == null) {
+            return R.error("未登陆");
+        }
+        List<MessageVo> messageVoList = new ArrayList<>();
+        Message commentMessage = messageService.findLatestNotice(user.getId(), TOPIC_COMMENT);
+        if (commentMessage != null) {
+            MessageVo messageVo = new MessageVo(commentMessage);
+            String content = HtmlUtils.htmlUnescape(commentMessage.getContent());
+            Map<String, Object> data = JSONObject.parseObject(content, HashMap.class);
+            int uId = (Integer) data.get("userId");
+            String username = userService.findUserById(uId).getUsername();
+            int entityType = (Integer) data.get("entityType");
+            String type = (entityType == 1) ? "帖子" : "评论";
+            content = "用户" + username + "回复了你的" + type;
+            messageVo.setContent(content);
+            int count = messageService.findNoticeCount(user.getId(), TOPIC_COMMENT);
+            messageVo.setLetterCount(count);
+            int unread = messageService.findNoticeUnreadCount(user.getId(), TOPIC_COMMENT);
+            messageVo.setLetterUnreadCount(unread);
+            messageVoList.add(messageVo);
+        }
+
+        Message likeMessage = messageService.findLatestNotice(user.getId(), TOPIC_LIKE);
+        if (likeMessage != null) {
+            MessageVo messageVo = new MessageVo(likeMessage);
+            String content = HtmlUtils.htmlUnescape(likeMessage.getContent());
+            Map<String, Object> data = JSONObject.parseObject(content, HashMap.class);
+            int uId = (Integer) data.get("userId");
+            String username = userService.findUserById(uId).getUsername();
+            int entityType = (Integer) data.get("entityType");
+            String type = (entityType == 1) ? "帖子" : "评论";
+            content = "用户" + username + "点赞了你的" + type;
+            messageVo.setContent(content);
+            int count = messageService.findNoticeCount(user.getId(), TOPIC_LIKE);
+            messageVo.setLetterCount(count);
+            int unread = messageService.findNoticeUnreadCount(user.getId(), TOPIC_LIKE);
+            messageVo.setLetterUnreadCount(unread);
+            messageVoList.add(messageVo);
+        }
+
+        Message followMessage = messageService.findLatestNotice(user.getId(), TOPIC_FOLLOW);
+        if (followMessage != null) {
+            MessageVo messageVo = new MessageVo(followMessage);
+            String content = HtmlUtils.htmlUnescape(followMessage.getContent());
+            Map<String, Object> data = JSONObject.parseObject(content, HashMap.class);
+            int uId = (Integer) data.get("userId");
+            String username = userService.findUserById(uId).getUsername();
+            int entityType = (Integer) data.get("entityType");
+            String type = (entityType == 1) ? "的帖子" : "";
+            content = "用户" + username + "关注了你" + type;
+            messageVo.setContent(content);
+            int count = messageService.findNoticeCount(user.getId(), TOPIC_FOLLOW);
+            messageVo.setLetterCount(count);
+            int unread = messageService.findNoticeUnreadCount(user.getId(), TOPIC_FOLLOW);
+            messageVo.setLetterUnreadCount(unread);
+            messageVoList.add(messageVo);
+        }
+
+        Map<String, Object> map = new HashMap<>();
+        int noticeUnreadCount = messageService.findNoticeUnreadCount(user.getId(), null);
+        map.put("noticeUnreadCount", noticeUnreadCount);
+
+        R<List<MessageVo>> r = new R<>();
+
+        r.setMap(map);
+        r.setData(messageVoList);
+        r.setCode(1);
+        r.setMsg("成功获取通知信息");
+
+        return r;
+    }
+
+    @RequestMapping(path = "/notice/detail/{topic}", method = RequestMethod.GET)
+    public R<List<MessageVo>> getNoticeList(HttpServletRequest request,@PathVariable("topic") String topic,@RequestParam(value = "pageNum", defaultValue = "0") int pageNum, @RequestParam(value = "pageSize", defaultValue = "5") int pageSize){
+        User user = (User) request.getSession().getAttribute("user");
+        if (user == null) {
+            return R.error("未登陆");
+        }
+        R<List<MessageVo>> r = new R<>();
+        List<MessageVo> noticeVoList = new ArrayList<>();
+        List<Message> noticeList = messageService.findNotices(user.getId(), topic, pageNum,pageSize);
+        int total = messageService.findNoticeCount(user.getId(), topic);
+        noticeVoList = messageService.getNoticeList(noticeList);
+        Map<String, Object> map = new HashMap<>();
+        map.put("total", total);
+
+        r.setData(noticeVoList);
+        r.setCode(1);
+        r.setMap(map);
+        r.setMsg("成功获取通知信息列表");
+
+        List<Integer> ids = getLetterIds(noticeList,user);
+        if (!ids.isEmpty()) {
+            messageService.readMessage(ids);
+        }
+
+        return r;
     }
 }

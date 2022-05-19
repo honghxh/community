@@ -19,5 +19,6 @@ public interface CommentService extends IService<Comment> {
     public int addReply(Comment comment);
     public List<Map<String, Object>> getReplyList(int id);
     public List<Comment> getUserComment(int userId);
+    public Comment selectById(int userId);
 
 }

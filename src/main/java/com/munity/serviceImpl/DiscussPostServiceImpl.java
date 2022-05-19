@@ -73,5 +73,10 @@ public class DiscussPostServiceImpl extends ServiceImpl<DiscussPostMapper, Discu
         return discussPostMapper.selectList(queryWrapper);
     }
 
+    @Override
+    public DiscussPost selectById(int discussPostId) {
+      return   discussPostMapper.selectById(discussPostId);
+    }
+
 
 }

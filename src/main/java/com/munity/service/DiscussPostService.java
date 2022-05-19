@@ -18,5 +18,5 @@ public interface DiscussPostService extends IService<DiscussPost> {
   public  int  addDiscussPost(DiscussPost discussPost);
   public Post findDiscussPostById(int discussPostId);
   public List<DiscussPost> getUserPost(int userId);
-
+  public DiscussPost selectById(int discussPostId);
 }

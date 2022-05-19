@@ -128,7 +128,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         loginTicket.setExpired(new Date(System.currentTimeMillis() + 24 * 60 * 6000));
         String redisKey = RedisKeyUtil.getTicketKey(loginTicket.getTicket());
         redisTemplate.opsForValue().set(redisKey, loginTicket);
-        System.out.println(loginTicket.toString());
         return R.success(user).add("ticket", loginTicket.getTicket());
 
     }
